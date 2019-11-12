@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+        <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
+    </head>
+    <style>
+
+        body{
+            background:#606470;
+            display: flex;
+            align-items: center;
+            flex-direction: column;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        #search-div{
+            margin-top:180px;
+            border-radius:50%;
+            height:60px;
+            width:60px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            background:#ff570c;
+            transition: 0.5s ease all;
+            overflow: hidden;
+        }
+
+        #search-div:hover{
+            border: 2px solid #f7f7f7;
+        }
+
+        #search-btn{
+            border:none;
+            box-shadow: none;
+            background:transparent;
+            outline:none;
+            cursor: pointer;
+            color: #f7f7f7;
+            position: relative;
+            z-index:0;
+        }
+
+
+
+        #replace-search{
+            height:100%;
+            font-size:24px;
+            border:none;
+            outline: none;
+            display: none;
+            position: relative;
+            border-radius:50px;
+            left:50px;
+            background:#f7f7f7;
+            padding-left:20px;
+            color:rgba(0,0,0,0.5);
+            z-index:0;
+        }
+
+        .material-icons.md-40 { 
+            font-size: 40px; 
+            position: absolute;
+            top:-18px;
+            left:11px;
+        }
+
+
+        #float-i{
+            position: absolute;
+            z-index:10 !important;
+            display: none;
+            font-size:24px;
+            color:rgba(0,0,0,0.5);
+            left:16%;
+        }
+
+        .table-divs{
+            display: flex;
+            justify-content: flex-start ;
+            width:100%;
+        }
+
+        table{
+            margin:20px 30px 20px 30px;
+            border-collapse: collapse;
+        }
+
+        td{
+            height:30px;
+            width:30px;
+            text-align: center;
+            border:1px solid black;
+            background:#babdc4;
+        }
+    </style>
+    <body>
+
+        <div id="search-div">
+            <button id="search-btn" onclick="toggle()"><i class="material-icons md-40">search</i></button>
+            <input placeholder="Search" id="replace-search">
+        </div>
+        <input type="button" id="clear-btn" value="Clear">
+        <script>
+            toggleClick = true
+            throttle = null
+            wordcount = 0
+
+            $("#clear-btn").click((e)=>{
+                $("#search-btn").val("")
+            })
+
+            $("#replace-search").keyup((e)=>{
+                if(e.keyCode==32){
+                    var splitWord = $(e.target).val().split(" ")
+                    var lastWord = splitWord[splitWord.length-2]
+                    $.ajax({
+                        url:"http://localhost:5000/checkword",
+                        method:"get",
+                        data:{"word":lastWord},
+                        success:function(data){
+                            var data = JSON.parse(data)
+                            var tbc = $("<div></div>").attr("class","table-divs").attr("id","table"+wordcount)
+                            var txt = $(e.target).val()
+                            var txt = txt.replace(lastWord,data[0][1])
+                            $(e.target).val(txt)
+                            for(let i=0;i<data.length;i++){
+                                tb = createWordMatrix(lastWord,data[i][1],data[i][0])
+                                tbc.append(tb)
+                            }
+                            $("body").append(tbc)
+                        }
+                    })
+                }
+            })
+
+            $("#replace-search").focus(function(){
+                $("#float-i").animate({"position":"absolute","top":"380px","left":"10%","font-size":"48px"},function(){
+                    $("#float-i").css({"color":"white"})
+                })
+                
+            })
+
+            function createWordMatrix(str1,str2,table){
+                console.log(table)
+                var word1 = str1.split('')
+                word1.unshift("0")
+                word1.unshift('X')
+                var word2 = str2.split('')
+                word2.unshift('0')
+                var tm=0
+                var tn=0
+                var w2=0
+                var tb = $("<table></table>")
+                for(let i=0;i<word2.length+1;i++){
+                    var tr = $("<tr></tr>")
+                    if(i==0){
+                        for(let j=0;j<word1.length;j++){
+                            tr.append($("<td></td>").text(word1[j]))
+                        }
+                    }
+                    else{
+                        for(let j=0;j<word1.length;j++){
+                            if(j==0){
+                                tr.append($("<td></td>").text(word2[w2]))
+                                w2++
+                            }
+                            else{
+                                tr.append($("<td></td>").text(table[tm][tn]))
+                                tn++
+                            }
+                        }
+                        tn=0
+                        tm++
+                    }
+                    tb.append(tr)
+                }
+                return tb
+            }
+
+            function toggle(){
+                if(toggleClick){
+                    $("#search-btn").css({"pointer-events":"none"})
+                    $("#search-div").animate({"border-radius":"50px"},0,function(){
+                        $("#search-div").animate({"width":"80%"},200,function(){
+                            $("#float-i").fadeIn(1000)
+                            $("#replace-search").show()
+                            $("#replace-search").css({"width":"95%"})
+                            $("#search-btn").css({"pointer-events":"auto"})
+                        })
+                    })
+                    
+                }
+                else{
+                    $("#search-btn").css({"pointer-events":"none"})
+                    $("#search-div").animate({"width":"60px"},0,function(){
+                        $("#search-div").animate({"border-radius":"50%"},200,function(){
+                            $("#replace-search").hide()
+                            $("#replace-search").css({"width":"0px"})
+                            $("#search-btn").css({"pointer-events":"auto"})
+                        })
+                    })
+                }
+                toggleClick = !toggleClick
+            }
+            
+            
+        </script>
+    </body>
+</html>
